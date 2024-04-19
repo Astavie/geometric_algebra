@@ -112,21 +112,15 @@ impl epga1d::ComplexNumber {
     pub fn real(self) -> f32 {
         self[0]
     }
-
     pub fn imaginary(self) -> f32 {
         self[1]
     }
-
     pub fn from_polar(magnitude: f32, argument: f32) -> Self {
         Self::new(magnitude * argument.cos(), magnitude * argument.sin())
     }
-
     pub fn arg(self) -> f32 {
         self.imaginary().atan2(self.real())
     }
-}
-
-impl epga1d::ComplexNumber {
     pub fn exp(self) -> Self {
         Self::from_polar(self[0].exp(), self[1])
     }
@@ -135,6 +129,9 @@ impl epga1d::ComplexNumber {
     }
     pub fn powf(self, exponent: f32) -> Self {
         Self::from_polar(self.length().powf(exponent), self.arg() * exponent)
+    }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
     }
 }
 
@@ -151,6 +148,9 @@ impl ppga2d::Translator {
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
+    }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
     }
 }
 
@@ -182,6 +182,9 @@ impl ppga2d::Motor {
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
     }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
+    }
 }
 
 impl ppga3d::IdealLine {
@@ -197,6 +200,9 @@ impl ppga3d::Translator {
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
+    }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
     }
 }
 
@@ -221,6 +227,9 @@ impl ppga3d::Rotor {
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
+    }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
     }
 }
 
@@ -256,6 +265,9 @@ impl ppga3d::Motor {
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
+    }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
     }
 }
 
