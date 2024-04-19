@@ -261,7 +261,7 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             emit_indentation(collector, indentation + 1)?;
             collector.write_all(b"#[allow(clippy::too_many_arguments)]\n")?;
             emit_indentation(collector, indentation + 1)?;
-            collector.write_all(b"pub const fn new(")?;
+            collector.write_all(b"pub const fn from_raw(")?;
             let mut element_index = 0;
             for group in class.grouped_basis.iter() {
                 for element in group.iter() {

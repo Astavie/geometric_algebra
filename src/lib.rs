@@ -145,6 +145,9 @@ impl Normalization for ppga3d::IdealLine {
 }
 
 impl epga1d::ComplexNumber {
+    pub const fn new(real: f32, im: f32) -> Self {
+        Self::from_raw(real, im)
+    }
     pub fn real(self) -> f32 {
         self[0]
     }
@@ -171,9 +174,27 @@ impl epga1d::ComplexNumber {
     }
 }
 
+impl ppga2d::Point {
+    pub const fn new(x: f32, y: f32) -> Self {
+        Self::from_raw(1.0, y, x)
+    }
+    pub fn x(self) -> f32 {
+        return self[2] / self[0];
+    }
+    pub fn y(self) -> f32 {
+        return self[1] / self[0];
+    }
+}
+
+impl ppga2d::Direction {
+    pub const fn new(x: f32, y: f32) -> Self {
+        Self::from_raw(y, x)
+    }
+}
+
 impl ppga2d::Direction {
     pub fn exp(self) -> ppga2d::Translator {
-        ppga2d::Translator::new(1.0, self[0], self[1])
+        ppga2d::Translator::from_raw(1.0, self[0], self[1])
     }
 }
 
@@ -196,7 +217,7 @@ impl ppga2d::Origin {
         let a = det.sqrt();
         let c = a.cos();
         let s = a.sin();
-        ppga2d::Rotor::new(c, s)
+        ppga2d::Rotor::from_raw(c, s)
     }
 }
 
@@ -205,7 +226,7 @@ impl ppga2d::Rotor {
         let det = 1.0 - self[0] * self[0];
         let a = 1.0 / det;
         let b = self[0].acos() * a.sqrt();
-        ppga2d::Origin::new(b * self[1])
+        ppga2d::Origin::from_raw(b * self[1])
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
@@ -219,13 +240,13 @@ impl ppga2d::Point {
     pub fn exp(self) -> ppga2d::Motor {
         let det = self[0] * self[0];
         if det <= 0.0 {
-            return ppga2d::Motor::new(1.0, 0.0, self[1], self[2]);
+            return ppga2d::Motor::from_raw(1.0, 0.0, self[1], self[2]);
         }
         let a = det.sqrt();
         let c = a.cos();
         let s = a.sin() / a;
         let g0 = simd::Simd32x3::from(s) * self.group0();
-        ppga2d::Motor::new(c, g0[0], g0[1], g0[2])
+        ppga2d::Motor::from_raw(c, g0[0], g0[1], g0[2])
     }
 }
 
@@ -233,12 +254,12 @@ impl ppga2d::Motor {
     pub fn ln(self) -> ppga2d::Point {
         let det = 1.0 - self[0] * self[0];
         if det <= 0.0 {
-            return ppga2d::Point::new(0.0, self[2], self[3]);
+            return ppga2d::Point::from_raw(0.0, self[2], self[3]);
         }
         let a = 1.0 / det;
         let b = self[0].acos() * a.sqrt();
         let g0 = simd::Simd32x4::from(b) * self.group0();
-        ppga2d::Point::new(g0[1], g0[2], g0[3])
+        ppga2d::Point::from_raw(g0[1], g0[2], g0[3])
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
@@ -250,7 +271,7 @@ impl ppga2d::Motor {
 
 impl ppga3d::IdealLine {
     pub fn exp(self) -> ppga3d::Translator {
-        ppga3d::Translator::new(1.0, self[0], self[1], self[2])
+        ppga3d::Translator::from_raw(1.0, self[0], self[1], self[2])
     }
 }
 
@@ -274,7 +295,7 @@ impl ppga3d::Branch {
         let c = a.cos();
         let s = a.sin() / a;
         let g0 = simd::Simd32x3::from(s) * self.group0();
-        ppga3d::Rotor::new(c, g0[0], g0[1], g0[2])
+        ppga3d::Rotor::from_raw(c, g0[0], g0[1], g0[2])
     }
 }
 
@@ -284,7 +305,7 @@ impl ppga3d::Rotor {
         let a = 1.0 / det;
         let b = self[0].acos() * a.sqrt();
         let g0 = simd::Simd32x4::from(b) * self.group0();
-        ppga3d::Branch::new(g0[1], g0[2], g0[3])
+        ppga3d::Branch::from_raw(g0[1], g0[2], g0[3])
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
@@ -298,7 +319,7 @@ impl ppga3d::Line {
     pub fn exp(self) -> ppga3d::Motor {
         let det = self[3] * self[3] + self[4] * self[4] + self[5] * self[5];
         if det <= 0.0 {
-            return ppga3d::Motor::new(1.0, 0.0, 0.0, 0.0, 0.0, self[0], self[1], self[2]);
+            return ppga3d::Motor::from_raw(1.0, 0.0, 0.0, 0.0, 0.0, self[0], self[1], self[2]);
         }
         let a = det.sqrt();
         let c = a.cos();
@@ -307,7 +328,7 @@ impl ppga3d::Line {
         let t = m / det * (c - s);
         let g0 = simd::Simd32x3::from(s) * self.group1();
         let g1 = simd::Simd32x3::from(s) * self.group0() + simd::Simd32x3::from(t) * self.group1();
-        ppga3d::Motor::new(c, g0[0], g0[1], g0[2], s * m, g1[0], g1[1], g1[2])
+        ppga3d::Motor::from_raw(c, g0[0], g0[1], g0[2], s * m, g1[0], g1[1], g1[2])
     }
 }
 
@@ -315,14 +336,14 @@ impl ppga3d::Motor {
     pub fn ln(self) -> ppga3d::Line {
         let det = 1.0 - self[0] * self[0];
         if det <= 0.0 {
-            return ppga3d::Line::new(self[5], self[6], self[7], 0.0, 0.0, 0.0);
+            return ppga3d::Line::from_raw(self[5], self[6], self[7], 0.0, 0.0, 0.0);
         }
         let a = 1.0 / det;
         let b = self[0].acos() * a.sqrt();
         let c = a * self[4] * (1.0 - self[0] * b);
         let g0 = simd::Simd32x4::from(b) * self.group1() + simd::Simd32x4::from(c) * self.group0();
         let g1 = simd::Simd32x4::from(b) * self.group0();
-        ppga3d::Line::new(g0[1], g0[2], g0[3], g1[1], g1[2], g1[3])
+        ppga3d::Line::from_raw(g0[1], g0[2], g0[3], g1[1], g1[2], g1[3])
     }
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
@@ -358,14 +379,19 @@ impl std::default::Default for ppga2d::PseudoScalar {
 
 pub mod ppga3d {
     pub use super::generated::ppga3d::*;
-    pub const ORIGIN: Origin = Origin::new(1.0);
-    pub const I: PseudoScalar = PseudoScalar::new(1.0);
+    pub const ORIGIN: Origin = Origin::from_raw(1.0);
+    pub const I: PseudoScalar = PseudoScalar::from_raw(1.0);
 }
 
 pub mod ppga2d {
     pub use super::generated::ppga2d::*;
-    pub const ORIGIN: Origin = Origin::new(1.0);
-    pub const I: PseudoScalar = PseudoScalar::new(1.0);
+    pub const ORIGIN: Origin = Origin::from_raw(1.0);
+    pub const I: PseudoScalar = PseudoScalar::from_raw(1.0);
+
+    pub const UP: Direction = Direction::new(0.0, 1.0);
+    pub const DOWN: Direction = Direction::new(0.0, -1.0);
+    pub const LEFT: Direction = Direction::new(-1.0, 0.0);
+    pub const RIGHT: Direction = Direction::new(1.0, 0.0);
 }
 
 /// Element order reversed
@@ -473,4 +499,54 @@ pub trait Normalization {
 /// Raises a number to the scalar power of `-1.0`
 pub trait Inverse {
     fn inverse(self) -> Self;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use plotly::{common::Line, Plot, Scatter};
+
+    #[test]
+    fn it_works() {
+        let mut plot = Plot::new();
+
+        const POINTS: usize = 10;
+        const ANGLE: f32 = 2.0 * std::f32::consts::PI / (POINTS as f32);
+
+        let center = ppga2d::Point::new(2.0, 3.0);
+        let points = (0..POINTS)
+            .map(|p| point_on_circle(center, 1.5, ANGLE * ((p + 1) as f32)))
+            .collect::<Vec<_>>();
+
+        let trace = scatter(&points);
+        plot.add_trace(trace);
+
+        plot.write_html("out.html");
+    }
+
+    fn point_on_circle(center: ppga2d::Point, radius: f32, angle: f32) -> ppga2d::Point {
+        let center = center.normalized();
+
+        let up = ppga2d::UP * radius;
+        let on_circle = center + up;
+
+        let rotor = (angle / 2.0 * center).exp();
+        println!("{:?}", rotor);
+        assert!(false);
+        rotor.sandwich(on_circle)
+    }
+
+    fn scatter(points: &[ppga2d::Point]) -> Box<Scatter<f32, f32>> {
+        let xs = points
+            .iter()
+            .copied()
+            .map(ppga2d::Point::x)
+            .collect::<Vec<_>>();
+        let ys = points
+            .iter()
+            .copied()
+            .map(ppga2d::Point::y)
+            .collect::<Vec<_>>();
+        Scatter::new(xs, ys).line(Line::new().width(0.0))
+    }
 }

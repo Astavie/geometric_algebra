@@ -9,4 +9,7 @@ license = "MIT"
 edition = "2021"
 
 [build-dependencies]
-codegen = { path= "codegen" }
+codegen = { path = "codegen" }
+
+[dev-dependencies]
+plotly = "0.8.4"
