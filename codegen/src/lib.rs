@@ -97,13 +97,6 @@ pub fn generate_code(desc: AlgebraDescriptor, path: &str) {
             data_type: DataType::MultiVector(class_a),
         };
         let mut single_trait_implementations = std::collections::BTreeMap::new();
-        for (name, method) in [("Zero", "zero"), ("One", "one")] {
-            let ast_node = class_a.constant(name, method);
-            emitter.emit(&ast_node).unwrap();
-            if ast_node != AstNode::None {
-                single_trait_implementations.insert(name.to_string(), ast_node);
-            }
-        }
         for (name, method, involution) in involutions.iter() {
             let ast_node = MultiVectorClass::involution(name, method, involution, &parameter_a, &registry, false);
             emitter.emit(&ast_node).unwrap();
@@ -156,9 +149,14 @@ pub fn generate_code(desc: AlgebraDescriptor, path: &str) {
                 if let Some(reversal) = single_trait_implementations.get("Reverse") {
                     if parameter_a.multi_vector_class() == parameter_b.multi_vector_class() {
                         let squared_magnitude = MultiVectorClass::derive_squared_magnitude(scalar_product, reversal, &parameter_a);
+                        let mut magnitude = squared_magnitude.clone();
+                        match &mut magnitude {
+                            AstNode::TraitImplementation { result, .. } => result.name = "length",
+                            _ => unreachable!(),
+                        };
+
                         emitter.emit(&squared_magnitude).unwrap();
-                        let magnitude = MultiVectorClass::derive_magnitude(&squared_magnitude, &parameter_a);
-                        emitter.emit(&magnitude).unwrap();
+
                         single_trait_implementations.insert("SquaredNorm".to_string(), squared_magnitude);
                         single_trait_implementations.insert("Norm".to_string(), magnitude);
                     }

@@ -4,37 +4,19 @@ pub mod simd;
 mod generated;
 pub use generated::*;
 
-impl Zero for f32 {
-    fn zero() -> Self {
-        0.0
-    }
-}
-
-impl One for f32 {
-    fn one() -> Self {
-        1.0
-    }
-}
-
 impl Automorphism for f32 {
-    type Output = f32;
-
     fn automorphism(self) -> f32 {
         self
     }
 }
 
 impl Reverse for f32 {
-    type Output = f32;
-
     fn reverse(self) -> f32 {
         self
     }
 }
 
 impl Conjugate for f32 {
-    type Output = f32;
-
     fn conjugate(self) -> f32 {
         self
     }
@@ -88,33 +70,22 @@ impl ScalarProduct<f32> for f32 {
     }
 }
 
-impl SquaredNorm for f32 {
-    type Output = f32;
-
-    fn length_squared(self) -> f32 {
-        self.scalar_product(self.reverse())
-    }
-}
-
-impl Norm for f32 {
-    type Output = f32;
-
+impl Magnitude for f32 {
     fn length(self) -> f32 {
         self.abs()
+    }
+    fn length_squared(self) -> f32 {
+        self * self
     }
 }
 
 impl Normalization for f32 {
-    type Output = f32;
-
     fn normalized(self) -> f32 {
         f32::signum(self)
     }
 }
 
 impl Inverse for f32 {
-    type Output = f32;
-
     fn inverse(self) -> f32 {
         1.0 / self
     }
@@ -299,16 +270,6 @@ pub mod ppga3d {
     pub const ORIGIN: Origin = Origin::new(1.0);
 }
 
-/// All elements set to `0.0`
-pub trait Zero {
-    fn zero() -> Self;
-}
-
-/// All elements set to `0.0`, except for the scalar, which is set to `1.0`
-pub trait One {
-    fn one() -> Self;
-}
-
 /// Element order reversed
 pub trait Dual {
     type Output;
@@ -319,22 +280,19 @@ pub trait Dual {
 ///
 /// Also called main involution
 pub trait Automorphism {
-    type Output;
-    fn automorphism(self) -> Self::Output;
+    fn automorphism(self) -> Self;
 }
 
 /// Negates elements with `grade % 4 >= 2`
 ///
 /// Also called transpose
 pub trait Reverse {
-    type Output;
-    fn reverse(self) -> Self::Output;
+    fn reverse(self) -> Self;
 }
 
 /// Negates elements with `(grade + 3) % 4 < 2`
 pub trait Conjugate {
-    type Output;
-    fn conjugate(self) -> Self::Output;
+    fn conjugate(self) -> Self;
 }
 
 /// General multi vector multiplication
@@ -397,30 +355,24 @@ pub trait SandwichProduct<T> {
     fn sandwich(self, other: T) -> Self::Output;
 }
 
-/// Square of the magnitude
-pub trait SquaredNorm {
-    type Output;
-    fn length_squared(self) -> Self::Output;
-}
-
 /// Length as scalar
 ///
 /// Also called amplitude, absolute value or norm
-pub trait Norm {
-    type Output;
-    fn length(self) -> Self::Output;
+pub trait Magnitude: Sized {
+    fn length_squared(self) -> f32;
+    fn length(self) -> f32 {
+        self.length_squared().sqrt()
+    }
 }
 
 /// Direction without magnitude (set to scalar `-1.0` or `1.0`)
 ///
 /// Also called sign or normalize
 pub trait Normalization {
-    type Output;
-    fn normalized(self) -> Self::Output;
+    fn normalized(self) -> Self;
 }
 
 /// Raises a number to the scalar power of `-1.0`
 pub trait Inverse {
-    type Output;
-    fn inverse(self) -> Self::Output;
+    fn inverse(self) -> Self;
 }

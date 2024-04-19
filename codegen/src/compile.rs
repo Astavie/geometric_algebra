@@ -167,43 +167,6 @@ impl MultiVectorClass {
         unreachable!()
     }
 
-    pub fn constant<'a>(&'a self, trait_name: &'static str, method_name: &'static str) -> AstNode<'a> {
-        let (scalar_value, other_values) = match trait_name {
-            "Zero" => (0, 0),
-            "One" => (1, 0),
-            _ => unreachable!(),
-        };
-        let mut body = Vec::new();
-        for result_group in self.grouped_basis.iter() {
-            let size = result_group.len();
-            let expression = Expression {
-                size,
-                content: ExpressionContent::Constant(
-                    DataType::SimdVector(size),
-                    result_group
-                        .iter()
-                        .map(|element| if element.index == 0 { scalar_value } else { other_values })
-                        .collect(),
-                ),
-            };
-            body.push((DataType::SimdVector(size), *simplify_and_legalize(Box::new(expression))));
-        }
-        AstNode::TraitImplementation {
-            name: trait_name,
-            result: Parameter {
-                name: method_name,
-                data_type: DataType::MultiVector(self),
-            },
-            parameters: vec![],
-            body: vec![AstNode::ReturnStatement {
-                expression: Box::new(Expression {
-                    size: 1,
-                    content: ExpressionContent::InvokeClassMethod(self, "Constructor", body),
-                }),
-            }],
-        }
-    }
-
     pub fn involution<'a>(
         trait_name: &'static str,
         method_name: &'static str,
@@ -609,7 +572,7 @@ impl MultiVectorClass {
         let scalar_product_result = result_of_trait!(scalar_product);
         let involution_result = result_of_trait!(involution);
         AstNode::TraitImplementation {
-            name: "SquaredNorm",
+            name: "Magnitude",
             result: Parameter {
                 name: "length_squared",
                 data_type: scalar_product_result.data_type.clone(),
@@ -640,52 +603,6 @@ impl MultiVectorClass {
                                     involution_result.data_type.clone(),
                                     vec![],
                                 ),
-                            },
-                        )],
-                    ),
-                }),
-            }],
-        }
-    }
-
-    pub fn derive_magnitude<'a>(squared_magnitude: &AstNode<'a>, parameter_a: &Parameter<'a>) -> AstNode<'a> {
-        let squared_magnitude_result = result_of_trait!(squared_magnitude);
-        AstNode::TraitImplementation {
-            name: "Norm",
-            result: Parameter {
-                name: "length",
-                data_type: squared_magnitude_result.data_type.clone(),
-            },
-            parameters: vec![parameter_a.clone()],
-            body: vec![AstNode::ReturnStatement {
-                expression: Box::new(Expression {
-                    size: 1,
-                    content: ExpressionContent::InvokeClassMethod(
-                        squared_magnitude_result.multi_vector_class(),
-                        "Constructor",
-                        vec![(
-                            DataType::SimdVector(1),
-                            Expression {
-                                size: 1,
-                                content: ExpressionContent::SquareRoot(Box::new(Expression {
-                                    size: 1,
-                                    content: ExpressionContent::Access(
-                                        Box::new(Expression {
-                                            size: 1,
-                                            content: ExpressionContent::InvokeInstanceMethod(
-                                                parameter_a.data_type.clone(),
-                                                Box::new(Expression {
-                                                    size: 1,
-                                                    content: ExpressionContent::Variable(parameter_a.data_type.clone(), parameter_a.name),
-                                                }),
-                                                squared_magnitude_result.name,
-                                                squared_magnitude_result.data_type.clone(),
-                                                vec![],
-                                            ),
-                                        }),
-                                        0,
-                                    ),
-                                })),
                             },
                         )],
                     ),

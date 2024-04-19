@@ -522,7 +522,7 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             collector.write_all(b" for ")?;
             emit_data_type(collector, impl_for)?;
             collector.write_all(b" {\n")?;
-            if !parameters.is_empty() && *name != "Into" {
+            if parameters.len() == 2 || *name == "Neg" || *name == "Dual" {
                 emit_indentation(collector, indentation + 1)?;
                 collector.write_all(b"type Output = ")?;
                 emit_data_type(collector, &result.data_type)?;

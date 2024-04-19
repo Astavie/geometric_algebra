@@ -1,7 +1,7 @@
 //! Solves polynomials with real valued coefficients up to degree 4
 
 #![allow(clippy::many_single_char_names)]
-use crate::{epga1d::*, Reverse, SquaredNorm};
+use crate::{epga1d::*, Magnitude, Reverse};
 
 /// Represents a complex root as homogeneous coordinates
 #[derive(Debug, Clone, Copy)]
