@@ -493,13 +493,14 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             parameters,
             body,
         } => {
-            if result.data_type.is_scalar()
+            if (result.data_type.is_scalar() || *name == "Dual")
                 && !parameters
                     .iter()
                     .any(|parameter| matches!(parameter.data_type, DataType::MultiVector(class) if !class.is_scalar()))
             {
                 return Ok(());
             }
+
             collector.write_fmt(format_args!("impl {}", name))?;
             let impl_for = match parameters.len() {
                 0 => &result.data_type,

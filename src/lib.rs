@@ -108,6 +108,42 @@ impl SandwichProduct<f32> for f32 {
     }
 }
 
+impl Magnitude for ppga2d::Direction {
+    fn length_squared(self) -> f32 {
+        self[0] * self[0] + self[1] * self[1]
+    }
+}
+
+impl Normalization for ppga2d::Direction {
+    fn normalized(self) -> Self {
+        self / self.length()
+    }
+}
+
+impl Magnitude for ppga3d::Direction {
+    fn length_squared(self) -> f32 {
+        self[0] * self[0] + self[1] * self[1] + self[2] * self[2]
+    }
+}
+
+impl Normalization for ppga3d::Direction {
+    fn normalized(self) -> Self {
+        self / self.length()
+    }
+}
+
+impl Magnitude for ppga3d::IdealLine {
+    fn length_squared(self) -> f32 {
+        self[0] * self[0] + self[1] * self[1] + self[2] * self[2]
+    }
+}
+
+impl Normalization for ppga3d::IdealLine {
+    fn normalized(self) -> Self {
+        self / self.length()
+    }
+}
+
 impl epga1d::ComplexNumber {
     pub fn real(self) -> f32 {
         self[0]
@@ -135,15 +171,15 @@ impl epga1d::ComplexNumber {
     }
 }
 
-impl ppga2d::IdealPoint {
+impl ppga2d::Direction {
     pub fn exp(self) -> ppga2d::Translator {
         ppga2d::Translator::new(1.0, self[0], self[1])
     }
 }
 
 impl ppga2d::Translator {
-    pub fn ln(self) -> ppga2d::IdealPoint {
-        let result: ppga2d::IdealPoint = self.into();
+    pub fn ln(self) -> ppga2d::Direction {
+        let result: ppga2d::Direction = self.into();
         result * (1.0 / self[0])
     }
     pub fn powf(self, exponent: f32) -> Self {
@@ -277,9 +313,27 @@ impl std::default::Default for ppga3d::Origin {
     }
 }
 
+impl std::default::Default for ppga3d::PseudoScalar {
+    fn default() -> Self {
+        ppga3d::I
+    }
+}
+
+impl std::default::Default for ppga2d::PseudoScalar {
+    fn default() -> Self {
+        ppga2d::I
+    }
+}
+
+pub mod ppga2d {
+    pub use super::generated::ppga2d::*;
+    pub const I: PseudoScalar = PseudoScalar::new(1.0);
+}
+
 pub mod ppga3d {
     pub use super::generated::ppga3d::*;
     pub const ORIGIN: Origin = Origin::new(1.0);
+    pub const I: PseudoScalar = PseudoScalar::new(1.0);
 }
 
 /// Element order reversed
