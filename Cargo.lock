@@ -3,5 +3,12 @@
 version = 3
 
 [[package]]
+name = "codegen"
+version = "0.3.0"
+
+[[package]]
 name = "geometric_algebra"
 version = "0.3.0"
+dependencies = [
+ "codegen",
+]

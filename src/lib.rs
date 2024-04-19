@@ -1,14 +1,8 @@
-pub mod epga1d;
-pub mod ppga1d;
-pub mod hpga1d;
-pub mod epga2d;
-pub mod ppga2d;
-pub mod hpga2d;
-pub mod epga3d;
-pub mod ppga3d;
-pub mod hpga3d;
-pub mod simd;
 pub mod polynomial;
+pub mod simd;
+
+mod generated;
+pub use generated::*;
 
 impl Zero for f32 {
     fn zero() -> Self {
@@ -249,7 +243,7 @@ impl Powf for ppga2d::Motor {
     }
 }
 
-impl Exp for ppga3d::IdealPoint {
+impl Exp for ppga3d::IdealLine {
     type Output = ppga3d::Translator;
 
     fn exp(self) -> ppga3d::Translator {
@@ -258,10 +252,10 @@ impl Exp for ppga3d::IdealPoint {
 }
 
 impl Ln for ppga3d::Translator {
-    type Output = ppga3d::IdealPoint;
+    type Output = ppga3d::IdealLine;
 
-    fn ln(self) -> ppga3d::IdealPoint {
-        let result: ppga3d::IdealPoint = self.into();
+    fn ln(self) -> ppga3d::IdealLine {
+        let result: ppga3d::IdealLine = self.into();
         result * (1.0 / self[0])
     }
 }

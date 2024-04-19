@@ -11,10 +11,22 @@ use crate::{
     emit::Emitter,
 };
 
-fn main() {
+// TODO see also the already existing "GeometricAlgebra" that is just the generator squares
+pub struct AlgebraDescriptor {
+    pub algebra_name: String,
+    pub generator_squares: Vec<isize>,
+    pub multi_vectors: Vec<MultiVectorClass>,
+}
+
+pub fn read_config_from_env() -> AlgebraDescriptor {
     let mut args = std::env::args();
     let _executable = args.next().unwrap();
     let config = args.next().unwrap();
+    read_config_from_str(config.as_str())
+}
+
+pub fn read_config_from_str(config: &str) -> AlgebraDescriptor {
+    let config = config.to_string();
     let mut config_iter = config.split(';');
     let algebra_descriptor = config_iter.next().unwrap();
     let mut algebra_descriptor_iter = algebra_descriptor.split(':');
@@ -28,19 +40,11 @@ fn main() {
     let algebra = GeometricAlgebra {
         generator_squares: generator_squares.as_slice(),
     };
-    let involutions = Involution::involutions(&algebra);
-    let products = Product::products(&algebra);
-    let basis = algebra.sorted_basis();
-    for b in basis.iter() {
-        for a in basis.iter() {
-            print!("{:1$} ", BasisElement::product(a, b, &algebra), generator_squares.len() + 2);
-        }
-        println!();
-    }
-    let mut registry = MultiVectorClassRegistry::default();
+
+    let mut multi_vectors = vec![];
     for multi_vector_descriptor in config_iter {
         let mut multi_vector_descriptor_iter = multi_vector_descriptor.split(':');
-        registry.register(MultiVectorClass {
+        multi_vectors.push(MultiVectorClass {
             class_name: multi_vector_descriptor_iter.next().unwrap().to_owned(),
             grouped_basis: multi_vector_descriptor_iter
                 .next()
@@ -55,7 +59,33 @@ fn main() {
                 .collect::<Vec<_>>(),
         });
     }
-    let mut emitter = Emitter::new(&std::path::Path::new("../src/").join(std::path::Path::new(algebra_name)));
+
+    AlgebraDescriptor {
+        algebra_name: algebra_name.to_string(),
+        generator_squares,
+        multi_vectors,
+    }
+}
+
+pub fn generate_code(desc: AlgebraDescriptor, path: &str) {
+    // generate code
+    let algebra = GeometricAlgebra {
+        generator_squares: desc.generator_squares.as_slice(),
+    };
+    let involutions = Involution::involutions(&algebra);
+    let products = Product::products(&algebra);
+    let basis = algebra.sorted_basis();
+    for b in basis.iter() {
+        for a in basis.iter() {
+            print!("{:1$} ", BasisElement::product(a, b, &algebra), desc.generator_squares.len() + 2);
+        }
+        println!();
+    }
+    let mut registry = MultiVectorClassRegistry::default();
+    for multi_vector_class in desc.multi_vectors {
+        registry.register(multi_vector_class);
+    }
+    let mut emitter = Emitter::new(&std::path::Path::new(path).join(desc.algebra_name.as_str()));
     emitter.emit(&AstNode::Preamble).unwrap();
     for class in registry.classes.iter() {
         emitter.emit(&AstNode::ClassDefinition { class }).unwrap();

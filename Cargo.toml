@@ -6,4 +6,7 @@ description = "Generate(d) custom libraries for geometric algebras"
 repository = "https://github.com/Lichtso/geometric_algebra/"
 keywords = ["math", "simd", "vector", "geometric-algebra", "geometry"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
+
+[build-dependencies]
+codegen = { path= "codegen" }
