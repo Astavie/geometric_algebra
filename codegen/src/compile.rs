@@ -1178,6 +1178,44 @@ impl MultiVectorClass {
         }
     }
 
+    pub fn alias_product<'a>(name: &'static str, product: &AstNode<'a>) -> AstNode<'a> {
+        let (result, params) = match product {
+            AstNode::TraitImplementation { result, parameters, .. } => (result, parameters),
+            _ => unreachable!(),
+        };
+        let result = result.clone();
+        let params = params.iter().cloned().collect::<Vec<_>>();
+
+        let product = Box::new(Expression {
+            size: 1,
+            content: ExpressionContent::InvokeInstanceMethod(
+                params[0].data_type.clone(),
+                Box::new(Expression {
+                    size: 1,
+                    content: ExpressionContent::Variable(params[0].data_type.clone(), params[0].name),
+                }),
+                result.name,
+                result.data_type.clone(),
+                vec![(
+                    DataType::MultiVector(params[1].multi_vector_class()),
+                    Expression {
+                        size: 1,
+                        content: ExpressionContent::Variable(params[1].data_type.clone(), params[1].name),
+                    },
+                )],
+            ),
+        });
+
+        AstNode::TraitImplementation {
+            result: Parameter {
+                name,
+                data_type: result.data_type.clone(),
+            },
+            parameters: params,
+            body: vec![AstNode::ReturnStatement { expression: product }],
+        }
+    }
+
     pub fn derive_sandwich_product<'a>(
         name: &'static str,
         geometric_product: &AstNode<'a>,

@@ -133,19 +133,16 @@ pub fn generate_code(desc: AlgebraDescriptor, path: &str) {
                     trait_implementations.insert(name.to_string(), ast_node);
                 }
             }
-            if class_a == class_b {
-                for name in &["Mul", "Div"] {
-                    let ast_node = MultiVectorClass::element_wise(*name, &parameter_a, &parameter_b, &registry);
-                    emitter.emit(&ast_node).unwrap();
-                    if ast_node != AstNode::None {
-                        trait_implementations.insert(name.to_string(), ast_node);
-                    }
-                }
-            }
-            for (name, product) in products.iter() {
+            for (name, alias, product) in products.iter() {
                 let ast_node = MultiVectorClass::product(name, product, &parameter_a, &parameter_b, &registry);
                 emitter.emit(&ast_node).unwrap();
+
                 if ast_node != AstNode::None {
+                    if let Some(alias) = alias {
+                        let alias_node = MultiVectorClass::alias_product(alias, &ast_node);
+                        emitter.emit(&alias_node).unwrap();
+                    }
+
                     trait_implementations.insert(name.to_string(), ast_node);
                 }
             }
@@ -172,10 +169,6 @@ pub fn generate_code(desc: AlgebraDescriptor, path: &str) {
         for (parameter_b, pair_trait_implementations) in pair_trait_implementations.values() {
             if let Some(geometric_product) = pair_trait_implementations.get("GeometricProduct") {
                 if parameter_b.data_type.is_scalar() {
-                    if !parameter_a.data_type.is_scalar() {
-                        let scale = MultiVectorClass::derive_scale("Mul", geometric_product, &parameter_a, parameter_b);
-                        emitter.emit(&scale).unwrap();
-                    }
                     if let Some(magnitude) = single_trait_implementations.get("Magnitude") {
                         let signum = MultiVectorClass::derive_signum("Signum", geometric_product, magnitude, &parameter_a);
                         emitter.emit(&signum).unwrap();
@@ -224,6 +217,8 @@ pub fn generate_code(desc: AlgebraDescriptor, path: &str) {
                     if let Some(inverse) = b_trait_implementations.1.get("Inverse") {
                         let division = MultiVectorClass::derive_division("GeometricQuotient", geometric_product, inverse, parameter_a, parameter_b);
                         emitter.emit(&division).unwrap();
+                        let alias = MultiVectorClass::alias_product("Div", &division);
+                        emitter.emit(&alias).unwrap();
                     }
                 }
                 if let Some(reversal) = single_trait_implementations.get("Reversal") {

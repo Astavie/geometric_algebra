@@ -192,11 +192,25 @@ fn emit_assign_trait<W: std::io::Write>(collector: &mut W, result: &Parameter, p
     collector.write_all(b"> for ")?;
     emit_data_type(collector, &parameters[0].data_type)?;
     collector.write_all(b" {\n    fn ")?;
-    camel_to_snake_case(collector, result.name)?;
+
+    // BitXor and BitAnd do not have an underscore
+    if result.name.starts_with("Bit") {
+        collector.write_all(result.name.to_lowercase().as_bytes())?;
+    } else {
+        camel_to_snake_case(collector, result.name)?;
+    }
+
     collector.write_all(b"_assign(&mut self, other: ")?;
     emit_data_type(collector, &parameters[1].data_type)?;
     collector.write_all(b") {\n        *self = (*self).")?;
-    camel_to_snake_case(collector, result.name)?;
+
+    // BitXor and BitAnd do not have an underscore
+    if result.name.starts_with("Bit") {
+        collector.write_all(result.name.to_lowercase().as_bytes())?;
+    } else {
+        camel_to_snake_case(collector, result.name)?;
+    }
+
     collector.write_all(b"(other);\n    }\n}\n\n")
 }
 
@@ -205,8 +219,9 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
         AstNode::None => {}
         AstNode::Preamble => {
             collector.write_all(b"#![allow(clippy::assign_op_pattern)]\n")?;
-            collector
-                .write_all(b"use crate::{simd::*, *};\nuse std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};\n\n")?;
+            collector.write_all(
+                b"use crate::{simd::*, *};\nuse std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, BitXor, BitXorAssign, BitAnd, BitAndAssign};\n\n",
+            )?;
         }
         AstNode::ClassDefinition { class } => {
             if class.is_scalar() {
@@ -524,7 +539,14 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             }
             emit_indentation(collector, indentation + 1)?;
             collector.write_all(b"fn ")?;
-            camel_to_snake_case(collector, result.name)?;
+
+            // BitXor and BitAnd do not have an underscore
+            if result.name.starts_with("Bit") {
+                collector.write_all(result.name.to_lowercase().as_bytes())?;
+            } else {
+                camel_to_snake_case(collector, result.name)?;
+            }
+
             match parameters.len() {
                 0 => collector.write_all(b"() -> Self")?,
                 1 => {
@@ -554,7 +576,7 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             emit_indentation(collector, indentation + 1)?;
             collector.write_all(b"}\n}\n\n")?;
             match result.name {
-                "Add" | "Sub" | "Mul" | "Div" => {
+                "Add" | "Sub" | "Mul" | "Div" | "BitAnd" | "BitXor" => {
                     emit_assign_trait(collector, result, parameters)?;
                 }
                 _ => {}

@@ -243,17 +243,29 @@ impl Product {
         }
     }
 
-    pub fn products(algebra: &GeometricAlgebra) -> Vec<(&'static str, Self)> {
+    pub fn products(algebra: &GeometricAlgebra) -> Vec<(&'static str, Option<&'static str>, Self)> {
         let basis = algebra.basis().collect::<Vec<_>>();
         let product = Self::new(&basis, &basis, algebra);
         vec![
-            ("GeometricProduct", product.clone()),
-            ("RegressiveProduct", product.projected(|r, s, t| t == r + s).dual(algebra)),
-            ("OuterProduct", product.projected(|r, s, t| t == r + s)),
-            ("InnerProduct", product.projected(|r, s, t| t == (r as isize - s as isize).unsigned_abs())),
-            ("LeftContraction", product.projected(|r, s, t| t as isize == s as isize - r as isize)),
-            ("RightContraction", product.projected(|r, s, t| t as isize == r as isize - s as isize)),
-            ("ScalarProduct", product.projected(|_r, _s, t| t == 0)),
+            ("GeometricProduct", Some("Mul"), product.clone()),
+            ("RegressiveProduct", Some("BitAnd"), product.projected(|r, s, t| t == r + s).dual(algebra)),
+            ("OuterProduct", Some("BitXor"), product.projected(|r, s, t| t == r + s)),
+            (
+                "InnerProduct",
+                None,
+                product.projected(|r, s, t| t == (r as isize - s as isize).unsigned_abs()),
+            ),
+            (
+                "LeftContraction",
+                None,
+                product.projected(|r, s, t| t as isize == s as isize - r as isize),
+            ),
+            (
+                "RightContraction",
+                None,
+                product.projected(|r, s, t| t as isize == r as isize - s as isize),
+            ),
+            ("ScalarProduct", None, product.projected(|_r, _s, t| t == 0)),
         ]
     }
 }
