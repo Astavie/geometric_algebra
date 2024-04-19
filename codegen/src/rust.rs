@@ -183,34 +183,20 @@ fn emit_expression<W: std::io::Write>(collector: &mut W, expression: &Expression
     Ok(())
 }
 
-fn emit_assign_trait<W: std::io::Write>(collector: &mut W, result: &Parameter, parameters: &[Parameter]) -> std::io::Result<()> {
+fn emit_assign_trait<W: std::io::Write>(collector: &mut W, name: &'static str, result: &Parameter, parameters: &[Parameter]) -> std::io::Result<()> {
     if result.multi_vector_class() != parameters[0].multi_vector_class() {
         return Ok(());
     }
-    collector.write_fmt(format_args!("impl {}Assign<", result.name))?;
+    collector.write_fmt(format_args!("impl {}Assign<", name))?;
     emit_data_type(collector, &parameters[1].data_type)?;
     collector.write_all(b"> for ")?;
     emit_data_type(collector, &parameters[0].data_type)?;
     collector.write_all(b" {\n    fn ")?;
-
-    // BitXor and BitAnd do not have an underscore
-    if result.name.starts_with("Bit") {
-        collector.write_all(result.name.to_lowercase().as_bytes())?;
-    } else {
-        camel_to_snake_case(collector, result.name)?;
-    }
-
+    collector.write_all(result.name.as_bytes())?;
     collector.write_all(b"_assign(&mut self, other: ")?;
     emit_data_type(collector, &parameters[1].data_type)?;
     collector.write_all(b") {\n        *self = (*self).")?;
-
-    // BitXor and BitAnd do not have an underscore
-    if result.name.starts_with("Bit") {
-        collector.write_all(result.name.to_lowercase().as_bytes())?;
-    } else {
-        camel_to_snake_case(collector, result.name)?;
-    }
-
+    collector.write_all(result.name.as_bytes())?;
     collector.write_all(b"(other);\n    }\n}\n\n")
 }
 
@@ -501,7 +487,12 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             emit_indentation(collector, indentation)?;
             collector.write_all(b"}\n")?;
         }
-        AstNode::TraitImplementation { result, parameters, body } => {
+        AstNode::TraitImplementation {
+            name,
+            result,
+            parameters,
+            body,
+        } => {
             if result.data_type.is_scalar()
                 && !parameters
                     .iter()
@@ -509,10 +500,10 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             {
                 return Ok(());
             }
-            collector.write_fmt(format_args!("impl {}", result.name))?;
+            collector.write_fmt(format_args!("impl {}", name))?;
             let impl_for = match parameters.len() {
                 0 => &result.data_type,
-                1 if result.name == "Into" => {
+                1 if *name == "Into" => {
                     collector.write_all(b"<")?;
                     emit_data_type(collector, &result.data_type)?;
                     collector.write_all(b">")?;
@@ -531,7 +522,7 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             collector.write_all(b" for ")?;
             emit_data_type(collector, impl_for)?;
             collector.write_all(b" {\n")?;
-            if !parameters.is_empty() && result.name != "Into" {
+            if !parameters.is_empty() && *name != "Into" {
                 emit_indentation(collector, indentation + 1)?;
                 collector.write_all(b"type Output = ")?;
                 emit_data_type(collector, &result.data_type)?;
@@ -539,13 +530,7 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             }
             emit_indentation(collector, indentation + 1)?;
             collector.write_all(b"fn ")?;
-
-            // BitXor and BitAnd do not have an underscore
-            if result.name.starts_with("Bit") {
-                collector.write_all(result.name.to_lowercase().as_bytes())?;
-            } else {
-                camel_to_snake_case(collector, result.name)?;
-            }
+            collector.write_all(result.name.as_bytes())?;
 
             match parameters.len() {
                 0 => collector.write_all(b"() -> Self")?,
@@ -575,9 +560,9 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             }
             emit_indentation(collector, indentation + 1)?;
             collector.write_all(b"}\n}\n\n")?;
-            match result.name {
+            match *name {
                 "Add" | "Sub" | "Mul" | "Div" | "BitAnd" | "BitXor" => {
-                    emit_assign_trait(collector, result, parameters)?;
+                    emit_assign_trait(collector, name, result, parameters)?;
                 }
                 _ => {}
             }

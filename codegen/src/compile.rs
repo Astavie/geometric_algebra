@@ -167,8 +167,8 @@ impl MultiVectorClass {
         unreachable!()
     }
 
-    pub fn constant<'a>(&'a self, name: &'static str) -> AstNode<'a> {
-        let (scalar_value, other_values) = match name {
+    pub fn constant<'a>(&'a self, trait_name: &'static str, method_name: &'static str) -> AstNode<'a> {
+        let (scalar_value, other_values) = match trait_name {
             "Zero" => (0, 0),
             "One" => (1, 0),
             _ => unreachable!(),
@@ -189,8 +189,9 @@ impl MultiVectorClass {
             body.push((DataType::SimdVector(size), *simplify_and_legalize(Box::new(expression))));
         }
         AstNode::TraitImplementation {
+            name: trait_name,
             result: Parameter {
-                name,
+                name: method_name,
                 data_type: DataType::MultiVector(self),
             },
             parameters: vec![],
@@ -204,7 +205,8 @@ impl MultiVectorClass {
     }
 
     pub fn involution<'a>(
-        name: &'static str,
+        trait_name: &'static str,
+        method_name: &'static str,
         involution: &Involution,
         parameter_a: &Parameter<'a>,
         registry: &'a MultiVectorClassRegistry,
@@ -274,8 +276,9 @@ impl MultiVectorClass {
                 base_index += size;
             }
             AstNode::TraitImplementation {
+                name: trait_name,
                 result: Parameter {
-                    name,
+                    name: method_name,
                     data_type: DataType::MultiVector(result_class),
                 },
                 parameters: vec![parameter_a.clone()],
@@ -292,7 +295,8 @@ impl MultiVectorClass {
     }
 
     pub fn element_wise<'a>(
-        name: &'static str,
+        trait_name: &'static str,
+        method_name: &'static str,
         parameter_a: &Parameter<'a>,
         parameter_b: &Parameter<'a>,
         registry: &'a MultiVectorClassRegistry,
@@ -356,7 +360,7 @@ impl MultiVectorClass {
                     DataType::SimdVector(size),
                     *simplify_and_legalize(Box::new(Expression {
                         size,
-                        content: match name {
+                        content: match trait_name {
                             "Add" => ExpressionContent::Add(Box::new(expressions.next().unwrap()), Box::new(expressions.next().unwrap())),
                             "Sub" => ExpressionContent::Subtract(Box::new(expressions.next().unwrap()), Box::new(expressions.next().unwrap())),
                             "Mul" => ExpressionContent::Multiply(Box::new(expressions.next().unwrap()), Box::new(expressions.next().unwrap())),
@@ -367,8 +371,9 @@ impl MultiVectorClass {
                 ));
             }
             AstNode::TraitImplementation {
+                name: trait_name,
                 result: Parameter {
-                    name,
+                    name: method_name,
                     data_type: DataType::MultiVector(result_class),
                 },
                 parameters: vec![parameter_a.clone(), parameter_b.clone()],
@@ -385,7 +390,8 @@ impl MultiVectorClass {
     }
 
     pub fn product<'a>(
-        name: &'static str,
+        trait_name: &'static str,
+        method_name: &'static str,
         product: &Product,
         parameter_a: &Parameter<'a>,
         parameter_b: &Parameter<'a>,
@@ -580,8 +586,9 @@ impl MultiVectorClass {
                 AstNode::None
             } else {
                 AstNode::TraitImplementation {
+                    name: trait_name,
                     result: Parameter {
-                        name,
+                        name: method_name,
                         data_type: DataType::MultiVector(result_class),
                     },
                     parameters: vec![parameter_a.clone(), parameter_b.clone()],
@@ -598,17 +605,13 @@ impl MultiVectorClass {
         }
     }
 
-    pub fn derive_squared_magnitude<'a>(
-        name: &'static str,
-        scalar_product: &AstNode<'a>,
-        involution: &AstNode<'a>,
-        parameter_a: &Parameter<'a>,
-    ) -> AstNode<'a> {
+    pub fn derive_squared_magnitude<'a>(scalar_product: &AstNode<'a>, involution: &AstNode<'a>, parameter_a: &Parameter<'a>) -> AstNode<'a> {
         let scalar_product_result = result_of_trait!(scalar_product);
         let involution_result = result_of_trait!(involution);
         AstNode::TraitImplementation {
+            name: "SquaredNorm",
             result: Parameter {
-                name,
+                name: "length_squared",
                 data_type: scalar_product_result.data_type.clone(),
             },
             parameters: vec![parameter_a.clone()],
@@ -645,58 +648,12 @@ impl MultiVectorClass {
         }
     }
 
-    pub fn derive_scale<'a>(
-        name: &'static str,
-        geometric_product: &AstNode<'a>,
-        parameter_a: &Parameter<'a>,
-        parameter_b: &Parameter<'a>,
-    ) -> AstNode<'a> {
-        let geometric_product_result = result_of_trait!(geometric_product);
-        AstNode::TraitImplementation {
-            result: Parameter {
-                name,
-                data_type: geometric_product_result.data_type.clone(),
-            },
-            parameters: vec![parameter_a.clone(), parameter_b.clone()],
-            body: vec![AstNode::ReturnStatement {
-                expression: Box::new(Expression {
-                    size: 1,
-                    content: ExpressionContent::InvokeInstanceMethod(
-                        parameter_a.data_type.clone(),
-                        Box::new(Expression {
-                            size: 1,
-                            content: ExpressionContent::Variable(parameter_a.data_type.clone(), parameter_a.name),
-                        }),
-                        geometric_product_result.name,
-                        geometric_product_result.data_type.clone(),
-                        vec![(
-                            parameter_b.data_type.clone(),
-                            Expression {
-                                size: 1,
-                                content: ExpressionContent::InvokeClassMethod(
-                                    parameter_b.multi_vector_class(),
-                                    "Constructor",
-                                    vec![(
-                                        DataType::SimdVector(1),
-                                        Expression {
-                                            size: 1,
-                                            content: ExpressionContent::Variable(parameter_b.data_type.clone(), parameter_b.name),
-                                        },
-                                    )],
-                                ),
-                            },
-                        )],
-                    ),
-                }),
-            }],
-        }
-    }
-
-    pub fn derive_magnitude<'a>(name: &'static str, squared_magnitude: &AstNode<'a>, parameter_a: &Parameter<'a>) -> AstNode<'a> {
+    pub fn derive_magnitude<'a>(squared_magnitude: &AstNode<'a>, parameter_a: &Parameter<'a>) -> AstNode<'a> {
         let squared_magnitude_result = result_of_trait!(squared_magnitude);
         AstNode::TraitImplementation {
+            name: "Norm",
             result: Parameter {
-                name,
+                name: "length",
                 data_type: squared_magnitude_result.data_type.clone(),
             },
             parameters: vec![parameter_a.clone()],
@@ -737,17 +694,13 @@ impl MultiVectorClass {
         }
     }
 
-    pub fn derive_signum<'a>(
-        name: &'static str,
-        geometric_product: &AstNode<'a>,
-        magnitude: &AstNode<'a>,
-        parameter_a: &Parameter<'a>,
-    ) -> AstNode<'a> {
+    pub fn derive_signum<'a>(geometric_product: &AstNode<'a>, magnitude: &AstNode<'a>, parameter_a: &Parameter<'a>) -> AstNode<'a> {
         let geometric_product_result = result_of_trait!(geometric_product);
         let magnitude_result = result_of_trait!(magnitude);
         AstNode::TraitImplementation {
+            name: "Normalization",
             result: Parameter {
-                name,
+                name: "normalized",
                 data_type: geometric_product_result.data_type.clone(),
             },
             parameters: vec![parameter_a.clone()],
@@ -813,7 +766,6 @@ impl MultiVectorClass {
     }
 
     pub fn derive_inverse<'a>(
-        name: &'static str,
         geometric_product: &AstNode<'a>,
         squared_magnitude: &AstNode<'a>,
         involution: &AstNode<'a>,
@@ -823,8 +775,9 @@ impl MultiVectorClass {
         let squared_magnitude_result = result_of_trait!(squared_magnitude);
         let involution_result = result_of_trait!(involution);
         AstNode::TraitImplementation {
+            name: "Inverse",
             result: Parameter {
-                name,
+                name: "inverse",
                 data_type: geometric_product_result.data_type.clone(),
             },
             parameters: vec![parameter_a.clone()],
@@ -898,240 +851,7 @@ impl MultiVectorClass {
         }
     }
 
-    pub fn derive_power_of_integer<'a>(
-        name: &'static str,
-        geometric_product: &AstNode<'a>,
-        constant_one: &AstNode<'a>,
-        inverse: &AstNode<'a>,
-        parameter_a: &Parameter<'a>,
-        parameter_b: &Parameter<'a>,
-    ) -> AstNode<'a> {
-        let geometric_product_result = result_of_trait!(geometric_product);
-        let constant_one_result = result_of_trait!(constant_one);
-        let inverse_result = result_of_trait!(inverse);
-        AstNode::TraitImplementation {
-            result: Parameter {
-                name,
-                data_type: parameter_a.data_type.clone(),
-            },
-            parameters: vec![parameter_a.clone(), parameter_b.clone()],
-            body: vec![
-                AstNode::IfThenBlock {
-                    condition: Box::new(Expression {
-                        size: 1,
-                        content: ExpressionContent::Equal(
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Variable(parameter_b.data_type.clone(), parameter_b.name),
-                            }),
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Constant(DataType::Integer, vec![0]),
-                            }),
-                        ),
-                    }),
-                    body: vec![AstNode::ReturnStatement {
-                        expression: Box::new(Expression {
-                            size: 1,
-                            content: ExpressionContent::InvokeClassMethod(parameter_a.multi_vector_class(), constant_one_result.name, vec![]),
-                        }),
-                    }],
-                },
-                AstNode::VariableAssignment {
-                    name: "x",
-                    data_type: Some(parameter_a.data_type.clone()),
-                    expression: Box::new(Expression {
-                        size: 1,
-                        content: ExpressionContent::Select(
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::LessThan(
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Variable(parameter_b.data_type.clone(), parameter_b.name),
-                                    }),
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Constant(DataType::Integer, vec![0]),
-                                    }),
-                                ),
-                            }),
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::InvokeInstanceMethod(
-                                    parameter_a.data_type.clone(),
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Variable(parameter_a.data_type.clone(), parameter_a.name),
-                                    }),
-                                    inverse_result.name,
-                                    inverse_result.data_type.clone(),
-                                    vec![],
-                                ),
-                            }),
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Variable(parameter_a.data_type.clone(), parameter_a.name),
-                            }),
-                        ),
-                    }),
-                },
-                AstNode::VariableAssignment {
-                    name: "y",
-                    data_type: Some(parameter_a.data_type.clone()),
-                    expression: Box::new(Expression {
-                        size: 1,
-                        content: ExpressionContent::InvokeClassMethod(parameter_a.multi_vector_class(), constant_one_result.name, vec![]),
-                    }),
-                },
-                AstNode::VariableAssignment {
-                    name: "n",
-                    data_type: Some(DataType::Integer),
-                    expression: Box::new(Expression {
-                        size: 1,
-                        content: ExpressionContent::InvokeInstanceMethod(
-                            DataType::Integer,
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Variable(parameter_b.data_type.clone(), parameter_b.name),
-                            }),
-                            "Abs",
-                            DataType::Integer,
-                            vec![],
-                        ),
-                    }),
-                },
-                AstNode::WhileLoopBlock {
-                    condition: Box::new(Expression {
-                        size: 1,
-                        content: ExpressionContent::LessThan(
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Constant(DataType::Integer, vec![1]),
-                            }),
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Variable(DataType::Integer, "n"),
-                            }),
-                        ),
-                    }),
-                    body: vec![
-                        AstNode::IfThenBlock {
-                            condition: Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Equal(
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::LogicAnd(
-                                            Box::new(Expression {
-                                                size: 1,
-                                                content: ExpressionContent::Variable(DataType::Integer, "n"),
-                                            }),
-                                            Box::new(Expression {
-                                                size: 1,
-                                                content: ExpressionContent::Constant(DataType::Integer, vec![1]),
-                                            }),
-                                        ),
-                                    }),
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Constant(DataType::Integer, vec![1]),
-                                    }),
-                                ),
-                            }),
-                            body: vec![AstNode::VariableAssignment {
-                                name: "y",
-                                data_type: None,
-                                expression: Box::new(Expression {
-                                    size: 1,
-                                    content: ExpressionContent::InvokeInstanceMethod(
-                                        parameter_a.data_type.clone(),
-                                        Box::new(Expression {
-                                            size: 1,
-                                            content: ExpressionContent::Variable(parameter_a.data_type.clone(), "x"),
-                                        }),
-                                        geometric_product_result.name,
-                                        geometric_product_result.data_type.clone(),
-                                        vec![(
-                                            DataType::MultiVector(parameter_a.multi_vector_class()),
-                                            Expression {
-                                                size: 1,
-                                                content: ExpressionContent::Variable(parameter_a.data_type.clone(), "y"),
-                                            },
-                                        )],
-                                    ),
-                                }),
-                            }],
-                        },
-                        AstNode::VariableAssignment {
-                            name: "x",
-                            data_type: None,
-                            expression: Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::InvokeInstanceMethod(
-                                    parameter_a.data_type.clone(),
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Variable(parameter_a.data_type.clone(), "x"),
-                                    }),
-                                    geometric_product_result.name,
-                                    geometric_product_result.data_type.clone(),
-                                    vec![(
-                                        DataType::MultiVector(parameter_a.multi_vector_class()),
-                                        Expression {
-                                            size: 1,
-                                            content: ExpressionContent::Variable(parameter_a.data_type.clone(), "x"),
-                                        },
-                                    )],
-                                ),
-                            }),
-                        },
-                        AstNode::VariableAssignment {
-                            name: "n",
-                            data_type: None,
-                            expression: Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::BitShiftRight(
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Variable(DataType::Integer, "n"),
-                                    }),
-                                    Box::new(Expression {
-                                        size: 1,
-                                        content: ExpressionContent::Constant(DataType::Integer, vec![1]),
-                                    }),
-                                ),
-                            }),
-                        },
-                    ],
-                },
-                AstNode::ReturnStatement {
-                    expression: Box::new(Expression {
-                        size: 1,
-                        content: ExpressionContent::InvokeInstanceMethod(
-                            parameter_a.data_type.clone(),
-                            Box::new(Expression {
-                                size: 1,
-                                content: ExpressionContent::Variable(parameter_a.data_type.clone(), "x"),
-                            }),
-                            geometric_product_result.name,
-                            geometric_product_result.data_type.clone(),
-                            vec![(
-                                DataType::MultiVector(parameter_a.multi_vector_class()),
-                                Expression {
-                                    size: 1,
-                                    content: ExpressionContent::Variable(parameter_a.data_type.clone(), "y"),
-                                },
-                            )],
-                        ),
-                    }),
-                },
-            ],
-        }
-    }
-
     pub fn derive_division<'a>(
-        name: &'static str,
         geometric_product: &AstNode<'a>,
         inverse: &AstNode<'a>,
         parameter_a: &Parameter<'a>,
@@ -1140,8 +860,9 @@ impl MultiVectorClass {
         let geometric_product_result = result_of_trait!(geometric_product);
         let inverse_result = result_of_trait!(inverse);
         AstNode::TraitImplementation {
+            name: "GeometricQuotient",
             result: Parameter {
-                name,
+                name: "geometric_quotient",
                 data_type: geometric_product_result.data_type.clone(),
             },
             parameters: vec![parameter_a.clone(), parameter_b.clone()],
@@ -1178,8 +899,8 @@ impl MultiVectorClass {
         }
     }
 
-    pub fn alias_product<'a>(name: &'static str, product: &AstNode<'a>) -> AstNode<'a> {
-        let (result, params) = match product {
+    pub fn alias_trait<'a>(trait_name: &'static str, method_name: &'static str, aliased: &AstNode<'a>) -> AstNode<'a> {
+        let (result, params) = match aliased {
             AstNode::TraitImplementation { result, parameters, .. } => (result, parameters),
             _ => unreachable!(),
         };
@@ -1207,8 +928,9 @@ impl MultiVectorClass {
         });
 
         AstNode::TraitImplementation {
+            name: trait_name,
             result: Parameter {
-                name,
+                name: method_name,
                 data_type: result.data_type.clone(),
             },
             parameters: params,
@@ -1217,7 +939,6 @@ impl MultiVectorClass {
     }
 
     pub fn derive_sandwich_product<'a>(
-        name: &'static str,
         geometric_product: &AstNode<'a>,
         geometric_product_2: &AstNode<'a>,
         involution: &AstNode<'a>,
@@ -1277,8 +998,9 @@ impl MultiVectorClass {
             geometric_product_2_result
         };
         AstNode::TraitImplementation {
+            name: "SandwichProduct",
             result: Parameter {
-                name,
+                name: "sandwich",
                 data_type: conversion_result.data_type.clone(),
             },
             parameters: vec![parameter_a.clone(), parameter_b.clone()],

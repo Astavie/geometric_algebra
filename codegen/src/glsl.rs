@@ -226,7 +226,9 @@ pub fn emit_code<W: std::io::Write>(collector: &mut W, ast_node: &AstNode, inden
             emit_indentation(collector, indentation)?;
             collector.write_all(b"}\n")?;
         }
-        AstNode::TraitImplementation { result, parameters, body } => {
+        AstNode::TraitImplementation {
+            result, parameters, body, ..
+        } => {
             emit_data_type(collector, &result.data_type)?;
             collector.write_all(b" ")?;
             match parameters.len() {

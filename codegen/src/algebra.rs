@@ -174,14 +174,14 @@ impl Involution {
         }
     }
 
-    pub fn involutions(algebra: &GeometricAlgebra) -> Vec<(&'static str, Self)> {
+    pub fn involutions(algebra: &GeometricAlgebra) -> Vec<(&'static str, &'static str, Self)> {
         let involution = Self::identity(algebra);
         vec![
-            ("Neg", involution.negated(|_grade| true)),
-            ("Automorphism", involution.negated(|grade| grade % 2 == 1)),
-            ("Reversal", involution.negated(|grade| grade % 4 >= 2)),
-            ("Conjugation", involution.negated(|grade| (grade + 3) % 4 < 2)),
-            ("Dual", involution.dual(algebra)),
+            ("Neg", "neg", involution.negated(|_grade| true)),
+            ("Automorphism", "automorphism", involution.negated(|grade| grade % 2 == 1)),
+            ("Reverse", "reverse", involution.negated(|grade| grade % 4 >= 2)),
+            ("Conjugate", "conjugate", involution.negated(|grade| (grade + 3) % 4 < 2)),
+            ("Dual", "dual", involution.dual(algebra)),
         ]
     }
 }
@@ -243,29 +243,37 @@ impl Product {
         }
     }
 
-    pub fn products(algebra: &GeometricAlgebra) -> Vec<(&'static str, Option<&'static str>, Self)> {
+    pub fn products(algebra: &GeometricAlgebra) -> Vec<((&'static str, &'static str), Option<(&'static str, &'static str)>, Self)> {
         let basis = algebra.basis().collect::<Vec<_>>();
         let product = Self::new(&basis, &basis, algebra);
         vec![
-            ("GeometricProduct", Some("Mul"), product.clone()),
-            ("RegressiveProduct", Some("BitAnd"), product.projected(|r, s, t| t == r + s).dual(algebra)),
-            ("OuterProduct", Some("BitXor"), product.projected(|r, s, t| t == r + s)),
+            (("GeometricProduct", "geometric_product"), Some(("Mul", "mul")), product.clone()),
             (
-                "InnerProduct",
+                ("RegressiveProduct", "join"),
+                Some(("BitAnd", "bitand")),
+                product.projected(|r, s, t| t == r + s).dual(algebra),
+            ),
+            (
+                ("OuterProduct", "meet"),
+                Some(("BitXor", "bitxor")),
+                product.projected(|r, s, t| t == r + s),
+            ),
+            (
+                ("InnerProduct", "dot"),
                 None,
                 product.projected(|r, s, t| t == (r as isize - s as isize).unsigned_abs()),
             ),
             (
-                "LeftContraction",
+                ("LeftContraction", "left_contraction"),
                 None,
                 product.projected(|r, s, t| t as isize == s as isize - r as isize),
             ),
             (
-                "RightContraction",
+                ("RightContraction", "right_contraction"),
                 None,
                 product.projected(|r, s, t| t as isize == r as isize - s as isize),
             ),
-            ("ScalarProduct", None, product.projected(|_r, _s, t| t == 0)),
+            (("ScalarProduct", "scalar_product"), None, product.projected(|_r, _s, t| t == 0)),
         ]
     }
 }

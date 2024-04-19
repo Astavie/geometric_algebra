@@ -24,18 +24,18 @@ impl Automorphism for f32 {
     }
 }
 
-impl Reversal for f32 {
+impl Reverse for f32 {
     type Output = f32;
 
-    fn reversal(self) -> f32 {
+    fn reverse(self) -> f32 {
         self
     }
 }
 
-impl Conjugation for f32 {
+impl Conjugate for f32 {
     type Output = f32;
 
-    fn conjugation(self) -> f32 {
+    fn conjugate(self) -> f32 {
         self
     }
 }
@@ -51,7 +51,7 @@ impl GeometricProduct<f32> for f32 {
 impl OuterProduct<f32> for f32 {
     type Output = f32;
 
-    fn outer_product(self, other: f32) -> f32 {
+    fn meet(self, other: f32) -> f32 {
         self * other
     }
 }
@@ -59,7 +59,7 @@ impl OuterProduct<f32> for f32 {
 impl InnerProduct<f32> for f32 {
     type Output = f32;
 
-    fn inner_product(self, other: f32) -> f32 {
+    fn dot(self, other: f32) -> f32 {
         self * other
     }
 }
@@ -88,26 +88,26 @@ impl ScalarProduct<f32> for f32 {
     }
 }
 
-impl SquaredMagnitude for f32 {
+impl SquaredNorm for f32 {
     type Output = f32;
 
-    fn squared_magnitude(self) -> f32 {
-        self.scalar_product(self.reversal())
+    fn length_squared(self) -> f32 {
+        self.scalar_product(self.reverse())
     }
 }
 
-impl Magnitude for f32 {
+impl Norm for f32 {
     type Output = f32;
 
-    fn magnitude(self) -> f32 {
+    fn length(self) -> f32 {
         self.abs()
     }
 }
 
-impl Signum for f32 {
+impl Normalization for f32 {
     type Output = f32;
 
-    fn signum(self) -> f32 {
+    fn normalized(self) -> f32 {
         f32::signum(self)
     }
 }
@@ -128,12 +128,12 @@ impl GeometricQuotient<f32> for f32 {
     }
 }
 
-impl Transformation<f32> for f32 {
+impl SandwichProduct<f32> for f32 {
     type Output = f32;
 
-    fn transformation(self, other: f32) -> f32 {
+    fn sandwich(self, other: f32) -> f32 {
         self.geometric_product(other)
-            .geometric_product(self.reversal())
+            .geometric_product(self.reverse())
     }
 }
 
@@ -155,59 +155,36 @@ impl epga1d::ComplexNumber {
     }
 }
 
-impl Exp for epga1d::ComplexNumber {
-    type Output = Self;
-
-    fn exp(self) -> Self {
+impl epga1d::ComplexNumber {
+    pub fn exp(self) -> Self {
         Self::from_polar(self[0].exp(), self[1])
     }
-}
-
-impl Ln for epga1d::ComplexNumber {
-    type Output = Self;
-
-    fn ln(self) -> Self {
-        Self::new(self.magnitude().ln(), self.arg())
+    pub fn ln(self) -> Self {
+        Self::new(self.length().ln(), self.arg())
+    }
+    pub fn powf(self, exponent: f32) -> Self {
+        Self::from_polar(self.length().powf(exponent), self.arg() * exponent)
     }
 }
 
-impl Powf for epga1d::ComplexNumber {
-    type Output = Self;
-
-    fn powf(self, exponent: f32) -> Self {
-        Self::from_polar(self.magnitude().powf(exponent), self.arg() * exponent)
-    }
-}
-
-impl Exp for ppga2d::IdealPoint {
-    type Output = ppga2d::Translator;
-
-    fn exp(self) -> ppga2d::Translator {
+impl ppga2d::IdealPoint {
+    pub fn exp(self) -> ppga2d::Translator {
         ppga2d::Translator::new(1.0, self[0], self[1])
     }
 }
 
-impl Ln for ppga2d::Translator {
-    type Output = ppga2d::IdealPoint;
-
-    fn ln(self) -> ppga2d::IdealPoint {
+impl ppga2d::Translator {
+    pub fn ln(self) -> ppga2d::IdealPoint {
         let result: ppga2d::IdealPoint = self.into();
         result * (1.0 / self[0])
     }
-}
-
-impl Powf for ppga2d::Translator {
-    type Output = Self;
-
-    fn powf(self, exponent: f32) -> Self {
+    pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
     }
 }
 
-impl Exp for ppga2d::Point {
-    type Output = ppga2d::Motor;
-
-    fn exp(self) -> ppga2d::Motor {
+impl ppga2d::Point {
+    pub fn exp(self) -> ppga2d::Motor {
         let det = self[0] * self[0];
         if det <= 0.0 {
             return ppga2d::Motor::new(1.0, 0.0, self[1], self[2]);
@@ -220,10 +197,8 @@ impl Exp for ppga2d::Point {
     }
 }
 
-impl Ln for ppga2d::Motor {
-    type Output = ppga2d::Point;
-
-    fn ln(self) -> ppga2d::Point {
+impl ppga2d::Motor {
+    pub fn ln(self) -> ppga2d::Point {
         let det = 1.0 - self[0] * self[0];
         if det <= 0.0 {
             return ppga2d::Point::new(0.0, self[2], self[3]);
@@ -233,45 +208,29 @@ impl Ln for ppga2d::Motor {
         let g0 = simd::Simd32x4::from(b) * self.group0();
         ppga2d::Point::new(g0[1], g0[2], g0[3])
     }
-}
-
-impl Powf for ppga2d::Motor {
-    type Output = Self;
-
-    fn powf(self, exponent: f32) -> Self {
+    pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
     }
 }
 
-impl Exp for ppga3d::IdealLine {
-    type Output = ppga3d::Translator;
-
-    fn exp(self) -> ppga3d::Translator {
+impl ppga3d::IdealLine {
+    pub fn exp(self) -> ppga3d::Translator {
         ppga3d::Translator::new(1.0, self[0], self[1], self[2])
     }
 }
 
-impl Ln for ppga3d::Translator {
-    type Output = ppga3d::IdealLine;
-
-    fn ln(self) -> ppga3d::IdealLine {
+impl ppga3d::Translator {
+    pub fn ln(self) -> ppga3d::IdealLine {
         let result: ppga3d::IdealLine = self.into();
         result * (1.0 / self[0])
     }
-}
-
-impl Powf for ppga3d::Translator {
-    type Output = Self;
-
-    fn powf(self, exponent: f32) -> Self {
+    pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
     }
 }
 
-impl Exp for ppga3d::Line {
-    type Output = ppga3d::Motor;
-
-    fn exp(self) -> ppga3d::Motor {
+impl ppga3d::Line {
+    pub fn exp(self) -> ppga3d::Motor {
         let det = self[3] * self[3] + self[4] * self[4] + self[5] * self[5];
         if det <= 0.0 {
             return ppga3d::Motor::new(1.0, 0.0, 0.0, 0.0, 0.0, self[0], self[1], self[2]);
@@ -287,10 +246,8 @@ impl Exp for ppga3d::Line {
     }
 }
 
-impl Ln for ppga3d::Motor {
-    type Output = ppga3d::Line;
-
-    fn ln(self) -> ppga3d::Line {
+impl ppga3d::Motor {
+    pub fn ln(self) -> ppga3d::Line {
         let det = 1.0 - self[0] * self[0];
         if det <= 0.0 {
             return ppga3d::Line::new(self[5], self[6], self[7], 0.0, 0.0, 0.0);
@@ -302,12 +259,7 @@ impl Ln for ppga3d::Motor {
         let g1 = simd::Simd32x4::from(b) * self.group0();
         ppga3d::Line::new(g0[1], g0[2], g0[3], g1[1], g1[2], g1[3])
     }
-}
-
-impl Powf for ppga3d::Motor {
-    type Output = Self;
-
-    fn powf(self, exponent: f32) -> Self {
+    pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
     }
 }
@@ -339,15 +291,15 @@ pub trait Automorphism {
 /// Negates elements with `grade % 4 >= 2`
 ///
 /// Also called transpose
-pub trait Reversal {
+pub trait Reverse {
     type Output;
-    fn reversal(self) -> Self::Output;
+    fn reverse(self) -> Self::Output;
 }
 
 /// Negates elements with `(grade + 3) % 4 < 2`
-pub trait Conjugation {
+pub trait Conjugate {
     type Output;
-    fn conjugation(self) -> Self::Output;
+    fn conjugate(self) -> Self::Output;
 }
 
 /// General multi vector multiplication
@@ -367,7 +319,7 @@ pub trait GeometricQuotient<T> {
 /// Also called join
 pub trait RegressiveProduct<T> {
     type Output;
-    fn regressive_product(self, other: T) -> Self::Output;
+    fn join(self, other: T) -> Self::Output;
 }
 
 /// Geometric product grade filtered by `t == r + s`
@@ -375,7 +327,7 @@ pub trait RegressiveProduct<T> {
 /// Also called meet or exterior product
 pub trait OuterProduct<T> {
     type Output;
-    fn outer_product(self, other: T) -> Self::Output;
+    fn meet(self, other: T) -> Self::Output;
 }
 
 /// Geometric product grade filtered by `t == (r - s).abs()`
@@ -383,7 +335,7 @@ pub trait OuterProduct<T> {
 /// Also called fat dot product
 pub trait InnerProduct<T> {
     type Output;
-    fn inner_product(self, other: T) -> Self::Output;
+    fn dot(self, other: T) -> Self::Output;
 }
 
 /// Geometric product grade filtered by `t == s - r`
@@ -404,62 +356,36 @@ pub trait ScalarProduct<T> {
     fn scalar_product(self, other: T) -> Self::Output;
 }
 
-/// `self * other * self.reversion()`
-///
-/// Also called sandwich product
-pub trait Transformation<T> {
+/// `self * other * self.reverse()`
+pub trait SandwichProduct<T> {
     type Output;
-    fn transformation(self, other: T) -> Self::Output;
+    fn sandwich(self, other: T) -> Self::Output;
 }
 
 /// Square of the magnitude
-pub trait SquaredMagnitude {
+pub trait SquaredNorm {
     type Output;
-    fn squared_magnitude(self) -> Self::Output;
+    fn length_squared(self) -> Self::Output;
 }
 
 /// Length as scalar
 ///
 /// Also called amplitude, absolute value or norm
-pub trait Magnitude {
+pub trait Norm {
     type Output;
-    fn magnitude(self) -> Self::Output;
+    fn length(self) -> Self::Output;
 }
 
 /// Direction without magnitude (set to scalar `-1.0` or `1.0`)
 ///
 /// Also called sign or normalize
-pub trait Signum {
+pub trait Normalization {
     type Output;
-    fn signum(self) -> Self::Output;
+    fn normalized(self) -> Self::Output;
 }
 
 /// Raises a number to the scalar power of `-1.0`
 pub trait Inverse {
     type Output;
     fn inverse(self) -> Self::Output;
-}
-
-/// The natural logarithm
-pub trait Ln {
-    type Output;
-    fn ln(self) -> Self::Output;
-}
-
-/// The exponential function
-pub trait Exp {
-    type Output;
-    fn exp(self) -> Self::Output;
-}
-
-/// Raises a number to an integer scalar power
-pub trait Powi {
-    type Output;
-    fn powi(self, exponent: isize) -> Self::Output;
-}
-
-/// Raises a number to an floating point scalar power
-pub trait Powf {
-    type Output;
-    fn powf(self, exponent: f32) -> Self::Output;
 }

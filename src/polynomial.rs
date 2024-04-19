@@ -1,7 +1,7 @@
 //! Solves polynomials with real valued coefficients up to degree 4
 
 #![allow(clippy::many_single_char_names)]
-use crate::{epga1d::*, GeometricProduct, GeometricQuotient, Powf, Reversal, SquaredMagnitude};
+use crate::{epga1d::*, Reverse, SquaredNorm};
 
 /// Represents a complex root as homogeneous coordinates
 #[derive(Debug, Clone, Copy)]
@@ -94,15 +94,14 @@ pub fn solve_cubic(coefficients: [f32; 4], error_margin: f32) -> (f32, Vec<Root>
     let c = discriminant.sqrt();
     let c = ((c + ComplexNumber::new(if c + d[1] == 0.0 { -d[1] } else { d[1] }, 0.0)) * 0.5)
         .powf(1.0 / 3.0);
-    for root_of_unity in &ROOTS_OF_UNITY_3 {
-        let ci = c.geometric_product(*root_of_unity);
+    for root_of_unity in ROOTS_OF_UNITY_3 {
+        let ci = c * root_of_unity;
         let denominator = ci * (3.0 * coefficients[3]);
-        let numerator =
-            (ci * -coefficients[2] - ci.geometric_product(ci) - ComplexNumber::new(d[0], 0.0))
-                .geometric_product(denominator.reversal());
+        let numerator = (ci * -coefficients[2] - ci * ci - ComplexNumber::new(d[0], 0.0))
+            * denominator.reverse();
         solutions.push(Root {
             numerator,
-            denominator: denominator.squared_magnitude(),
+            denominator: denominator.length_squared(),
         });
     }
     let real_root =
@@ -144,16 +143,15 @@ pub fn solve_quartic(coefficients: [f32; 5], error_margin: f32) -> (f32, Vec<Roo
     let c = discriminant.sqrt();
     let c = ((c + ComplexNumber::new(if c + d[1] == 0.0 { -d[1] } else { d[1] }, 0.0)) * 0.5)
         .powf(1.0 / 3.0);
-    let e = ((c + ComplexNumber::new(d[0], 0.0).geometric_quotient(c))
-        * (1.0 / (3.0 * coefficients[4]))
+    let e = ((c + ComplexNumber::new(d[0], 0.0) / c) * (1.0 / (3.0 * coefficients[4]))
         - ComplexNumber::new(p * 2.0 / 3.0, 0.0))
     .powf(0.5)
         * 0.5;
     let mut solutions = Vec::with_capacity(4);
     for i in 0..4 {
-        let f = (e.geometric_product(e) * -4.0 - ComplexNumber::new(2.0 * p, 0.0)
-            + ComplexNumber::new(if i & 2 == 0 { q } else { -q }, 0.0).geometric_quotient(e))
-        .powf(0.5)
+        let f = (e * e * -4.0 - ComplexNumber::new(2.0 * p, 0.0)
+            + ComplexNumber::new(if i & 2 == 0 { q } else { -q }, 0.0) / e)
+            .powf(0.5)
             * 0.5;
         let g = ComplexNumber::new(-coefficients[3] / (4.0 * coefficients[4]), 0.0)
             + if i & 2 == 0 { -e } else { e }

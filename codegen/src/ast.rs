@@ -105,6 +105,7 @@ pub enum AstNode<'a> {
         body: Vec<AstNode<'a>>,
     },
     TraitImplementation {
+        name: &'static str,
         result: Parameter<'a>,
         parameters: Vec<Parameter<'a>>,
         body: Vec<AstNode<'a>>,
