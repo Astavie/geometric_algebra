@@ -190,6 +190,31 @@ impl ppga2d::Translator {
     }
 }
 
+impl ppga2d::Origin {
+    pub fn exp(self) -> ppga2d::Rotor {
+        let det = self[0] * self[0];
+        let a = det.sqrt();
+        let c = a.cos();
+        let s = a.sin();
+        ppga2d::Rotor::new(c, s)
+    }
+}
+
+impl ppga2d::Rotor {
+    pub fn ln(self) -> ppga2d::Origin {
+        let det = 1.0 - self[0] * self[0];
+        let a = 1.0 / det;
+        let b = self[0].acos() * a.sqrt();
+        ppga2d::Origin::new(b * self[1])
+    }
+    pub fn powf(self, exponent: f32) -> Self {
+        (self.ln() * exponent).exp()
+    }
+    pub fn sqrt(self) -> Self {
+        self.powf(0.5)
+    }
+}
+
 impl ppga2d::Point {
     pub fn exp(self) -> ppga2d::Motor {
         let det = self[0] * self[0];
@@ -313,6 +338,12 @@ impl std::default::Default for ppga3d::Origin {
     }
 }
 
+impl std::default::Default for ppga2d::Origin {
+    fn default() -> Self {
+        ppga2d::ORIGIN
+    }
+}
+
 impl std::default::Default for ppga3d::PseudoScalar {
     fn default() -> Self {
         ppga3d::I
@@ -325,13 +356,14 @@ impl std::default::Default for ppga2d::PseudoScalar {
     }
 }
 
-pub mod ppga2d {
-    pub use super::generated::ppga2d::*;
+pub mod ppga3d {
+    pub use super::generated::ppga3d::*;
+    pub const ORIGIN: Origin = Origin::new(1.0);
     pub const I: PseudoScalar = PseudoScalar::new(1.0);
 }
 
-pub mod ppga3d {
-    pub use super::generated::ppga3d::*;
+pub mod ppga2d {
+    pub use super::generated::ppga2d::*;
     pub const ORIGIN: Origin = Origin::new(1.0);
     pub const I: PseudoScalar = PseudoScalar::new(1.0);
 }
