@@ -229,6 +229,30 @@ impl ppga3d::Translator {
     }
 }
 
+impl ppga3d::Branch {
+    pub fn exp(self) -> ppga3d::Rotor {
+        let det = self[0] * self[0] + self[1] * self[1] + self[2] * self[2];
+        let a = det.sqrt();
+        let c = a.cos();
+        let s = a.sin() / a;
+        let g0 = simd::Simd32x3::from(s) * self.group0();
+        ppga3d::Rotor::new(c, g0[0], g0[1], g0[2])
+    }
+}
+
+impl ppga3d::Rotor {
+    pub fn ln(self) -> ppga3d::Branch {
+        let det = 1.0 - self[0] * self[0];
+        let a = 1.0 / det;
+        let b = self[0].acos() * a.sqrt();
+        let g0 = simd::Simd32x4::from(b) * self.group0();
+        ppga3d::Branch::new(g0[1], g0[2], g0[3])
+    }
+    pub fn powf(self, exponent: f32) -> Self {
+        (self.ln() * exponent).exp()
+    }
+}
+
 impl ppga3d::Line {
     pub fn exp(self) -> ppga3d::Motor {
         let det = self[3] * self[3] + self[4] * self[4] + self[5] * self[5];
@@ -262,6 +286,17 @@ impl ppga3d::Motor {
     pub fn powf(self, exponent: f32) -> Self {
         (self.ln() * exponent).exp()
     }
+}
+
+impl std::default::Default for ppga3d::Origin {
+    fn default() -> Self {
+        ppga3d::ORIGIN
+    }
+}
+
+pub mod ppga3d {
+    pub use super::generated::ppga3d::*;
+    pub const ORIGIN: Origin = Origin::new(1.0);
 }
 
 /// All elements set to `0.0`
